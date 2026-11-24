@@ -1,0 +1,12 @@
+// Comun — apel fetch catre API-ul propriu, cu erori lizibile
+export async function api<T = unknown>(url: string, init?: RequestInit & { json?: unknown }): Promise<T> {
+  const { json, ...rest } = init ?? {};
+  const res = await fetch(url, {
+    ...rest,
+    headers: { ...(json !== undefined ? { "Content-Type": "application/json" } : {}), ...rest.headers },
+    body: json !== undefined ? JSON.stringify(json) : rest.body,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((data as { error?: string }).error ?? `Eroare ${res.status}`);
+  return data as T;
+}

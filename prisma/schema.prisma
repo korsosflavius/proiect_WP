@@ -1,0 +1,181 @@
+// ============================================================================
+// WedCraft — Schema bazei de date (Microsoft SQL Server + Prisma ORM)
+// ----------------------------------------------------------------------------
+// Adaptari fata de specificatie (care era scrisa pentru PostgreSQL):
+//  * SQL Server NU suporta `enum` in Prisma -> rolurile, categoriile, tipurile
+//    de meniu si statusurile sunt `String`, validate in aplicatie cu Zod
+//    (valorile permise sunt in src/lib/constants.ts).
+//  * SQL Server NU suporta liste scalare (String[]) -> alergiile unui invitat
+//    sunt salvate ca text separat prin virgula ("Gluten,Nuci").
+//  * SQL Server interzice "multiple cascade paths" -> unele relatii folosesc
+//    onDelete/onUpdate: NoAction, iar curatenia se face explicit in cod.
+//  * Regula "un furnizor nu poate avea 2 rezervari CONFIRMED in aceeasi zi"
+//    este garantata de un INDEX UNIC FILTRAT adaugat in migrarea SQL
+//    (vezi prisma/migrations/*_init/migration.sql).
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------- Persoana 1
+// Utilizator: rol COUPLE (miri) sau VENDOR (furnizor)
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  passwordHash  String
+  name          String
+  role          String // "COUPLE" | "VENDOR"
+  wedding       Wedding?
+  vendorProfile VendorProfile?
+  createdAt     DateTime       @default(now())
+}
+
+// ---------------------------------------------------------------- Persoana 1
+// Profilul public al unui furnizor (una din cele 6 categorii)
+model VendorProfile {
+  id           String          @id @default(cuid())
+  userId       String          @unique
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessName String
+  category     String // VENUE | DJ | BAND | PASTRY | PHOTOGRAPHER | DECORATOR
+  description  String          @db.NVarChar(Max)
+  city         String
+  basePrice    Float
+  phone        String?
+  capacity     Int? // doar pentru Sali (VENUE): nr. maxim de invitati
+  imageUrl     String?         @db.NVarChar(1000) // imaginea de coperta
+  gallery      VendorImage[]
+  packages     VendorPackage[]
+  bookings     Booking[]
+  blockedDates BlockedDate[]
+  createdAt    DateTime        @default(now())
+}
+
+// Galerie imagini furnizor
+model VendorImage {
+  id        String        @id @default(cuid())
+  vendorId  String
+  vendor    VendorProfile @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  url       String        @db.NVarChar(1000)
+  caption   String?
+  createdAt DateTime      @default(now())
+}
+
+// Pachete de servicii (ex: "Pachet Gold — 8 ore")
+model VendorPackage {
+  id          String        @id @default(cuid())
+  vendorId    String
+  vendor      VendorProfile @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  name        String
+  description String?       @db.NVarChar(2000)
+  price       Float
+  bookings    Booking[]
+}
+
+// ---------------------------------------------------------------- Persoana 1
+// Rezervare: leaga o Nunta, un Furnizor, o Data si un Pret
+model Booking {
+  id          String         @id @default(cuid())
+  weddingId   String
+  wedding     Wedding        @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  vendorId    String
+  // NoAction: evita "multiple cascade paths" (User -> Wedding -> Booking si User -> Vendor -> Booking)
+  vendor      VendorProfile  @relation(fields: [vendorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  packageId   String?
+  package     VendorPackage? @relation(fields: [packageId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  eventDate   DateTime       @db.Date
+  agreedPrice Float
+  status      String         @default("PENDING") // PENDING | CONFIRMED | REJECTED | CANCELLED
+  notes       String?        @db.NVarChar(2000)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([vendorId, eventDate])
+  @@index([weddingId])
+}
+
+// ---------------------------------------------------------------- Persoana 3
+// Zile blocate manual de furnizor in calendar (concediu / indisponibil)
+model BlockedDate {
+  id        String        @id @default(cuid())
+  vendorId  String
+  vendor    VendorProfile @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  date      DateTime      @db.Date
+  reason    String?
+
+  @@unique([vendorId, date])
+}
+
+// ---------------------------------------------------------------- Persoana 2
+// Profilul nuntii (un cuplu = o nunta)
+model Wedding {
+  id             String       @id @default(cuid())
+  userId         String       @unique
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coupleNames    String // ex: "Andrei & Maria"
+  weddingDate    DateTime     @db.Date
+  totalBudget    Float        @default(0)
+  expectedGuests Int          @default(100)
+  phone          String?
+  venueName      String? // actualizat automat cand o Sala (VENUE) confirma rezervarea
+  guests         Guest[]
+  tables         VenueTable[]
+  bookings       Booking[]
+  extraExpenses  BudgetItem[]
+}
+
+// Cheltuieli extra introduse manual de miri (rochie, verighete, etc.)
+model BudgetItem {
+  id        String   @id @default(cuid())
+  weddingId String
+  wedding   Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  label     String
+  amount    Float
+  category  String   @default("Altele")
+  createdAt DateTime @default(now())
+}
+
+// ---------------------------------------------------------------- Persoana 2
+// Invitat (cu meniu si alergii). tableId/seatIndex sunt setate de Persoana 3 (plan 2D)
+model Guest {
+  id         String      @id @default(cuid())
+  weddingId  String
+  wedding    Wedding     @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  fullName   String
+  phone      String?
+  group      String? // ex: "Familia mirelui", "Prieteni"
+  rsvpStatus String      @default("CONFIRMED") // CONFIRMED | PENDING | DECLINED
+  menuType   String      @default("STANDARD") // STANDARD | VEGETARIAN | VEGAN | KIDS
+  allergies  String      @default("") // ex: "Gluten,Nuci,Lactoza"
+  notes      String?     @db.NVarChar(1000)
+  tableId    String? // null daca nu e inca asezat la masa
+  // NoAction: Guest e deja sters in cascada prin Wedding; la stergerea unei mese
+  // invitatii sunt "ridicati" explicit in cod (tableId = null)
+  table      VenueTable? @relation(fields: [tableId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  seatIndex  Int? // pozitia scaunului (0..capacity-1)
+  createdAt  DateTime    @default(now())
+
+  @@index([weddingId])
+  @@index([tableId])
+}
+
+// ---------------------------------------------------------------- Persoana 3
+// Obiect din planul 2D al salii (masa rotunda, dreptunghiulara, prezidiu, ring de dans)
+model VenueTable {
+  id        String  @id @default(cuid())
+  weddingId String
+  wedding   Wedding @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  label     String // ex: "Masa 1", "Prezidiu", "Ring Dans"
+  shape     String // "ROUND" | "RECTANGLE" | "STAGE" | "DANCE_FLOOR"
+  capacity  Int     @default(8)
+  posX      Float // coordonata X in canvas-ul 2D
+  posY      Float // coordonata Y in canvas-ul 2D
+  rotation  Float   @default(0)
+  guests    Guest[]
+}

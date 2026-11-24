@@ -1,0 +1,162 @@
+@import "tailwindcss";
+
+/* ===================== WedCraft — tema vizuala ===================== */
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-playfair);
+
+  --color-brand-50: #fff1f4;
+  --color-brand-100: #ffe3ea;
+  --color-brand-200: #ffcad8;
+  --color-brand-300: #ff9fb8;
+  --color-brand-400: #fb6890;
+  --color-brand-500: #f23d6e;
+  --color-brand-600: #dc1d58;
+  --color-brand-700: #b9124a;
+  --color-brand-800: #9a1344;
+  --color-brand-900: #83143f;
+
+  --color-plum-500: #7c3aed;
+  --color-ink: #1a1523;
+
+  /* neutre calde (in loc de gri rece) */
+  --color-sand-50: #fcfbfa;
+  --color-sand-100: #f6f3f1;
+  --color-sand-200: #ece7e4;
+  --color-sand-300: #ddd5d1;
+
+  /* umbre fine, stratificate */
+  --shadow-xs: 0 1px 2px rgb(26 21 35 / 0.05);
+  --shadow-card: 0 1px 2px rgb(26 21 35 / 0.04), 0 1px 3px rgb(26 21 35 / 0.04);
+  --shadow-lift: 0 12px 32px -12px rgb(26 21 35 / 0.18), 0 2px 6px rgb(26 21 35 / 0.05);
+  --shadow-float: 0 24px 60px -20px rgb(26 21 35 / 0.28), 0 4px 12px rgb(26 21 35 / 0.06);
+
+  --animate-fade-in: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-pop: pop 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pop {
+  0% { opacity: 0; transform: scale(0.97) translateY(4px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background: var(--color-sand-50);
+  color: var(--color-ink);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection { background: #ffe3ea; color: #83143f; }
+
+/* fundal discret pentru zonele de prezentare (transparent: lasa sa se vada fundalul de dedesubt) */
+.bg-mesh {
+  background:
+    radial-gradient(48rem 24rem at 15% -8%, rgb(255 227 234 / 0.65) 0%, transparent 60%),
+    radial-gradient(40rem 22rem at 100% 0%, rgb(237 233 254 / 0.55) 0%, transparent 60%);
+}
+
+/* grila fina de puncte (folosita in hero / panouri decorative) */
+.bg-dots {
+  background-image: radial-gradient(rgb(26 21 35 / 0.09) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.text-gradient {
+  background: linear-gradient(95deg, var(--color-brand-600) 10%, var(--color-plum-500) 90%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* skeleton de incarcare */
+.skeleton {
+  background: linear-gradient(90deg, var(--color-sand-100) 25%, var(--color-sand-200) 50%, var(--color-sand-100) 75%);
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+  border-radius: 0.75rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* scrollbar subtil */
+.thin-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.thin-scroll::-webkit-scrollbar-thumb { background: var(--color-sand-300); border-radius: 99px; }
+.thin-scroll { scrollbar-width: thin; scrollbar-color: var(--color-sand-300) transparent; }
+
+/* ---------- FullCalendar (Persoana 3) ---------- */
+.fc {
+  --fc-border-color: var(--color-sand-200);
+  --fc-today-bg-color: transparent;
+  --fc-page-bg-color: #ffffff;
+  --fc-neutral-bg-color: var(--color-sand-50);
+  --fc-list-event-hover-bg-color: var(--color-sand-50);
+  --fc-button-bg-color: #ffffff;
+  --fc-button-border-color: var(--color-sand-200);
+  --fc-button-text-color: #1a1523;
+  --fc-button-hover-bg-color: var(--color-sand-50);
+  --fc-button-hover-border-color: var(--color-sand-300);
+  --fc-button-active-bg-color: #1a1523;
+  --fc-button-active-border-color: #1a1523;
+  --fc-event-border-color: transparent;
+  font-size: 0.82rem;
+}
+.fc .fc-toolbar.fc-header-toolbar { margin-bottom: 1.25rem; }
+.fc .fc-button {
+  border-radius: 0.6rem;
+  font-weight: 500;
+  font-size: 0.8rem;
+  padding: 0.4rem 0.75rem;
+  text-transform: capitalize;
+  box-shadow: var(--shadow-xs) !important;
+}
+.fc .fc-button-group > .fc-button { border-radius: 0; }
+.fc .fc-button-group > .fc-button:first-child { border-radius: 0.6rem 0 0 0.6rem; }
+.fc .fc-button-group > .fc-button:last-child { border-radius: 0 0.6rem 0.6rem 0; }
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:not(:disabled):active { color: white; }
+.fc .fc-button:focus-visible { outline: none; box-shadow: 0 0 0 4px var(--color-brand-100) !important; }
+.fc .fc-toolbar-title { font-family: var(--font-playfair); font-size: 1.6rem; font-weight: 600; text-transform: capitalize; letter-spacing: -0.01em; }
+.fc .fc-col-header-cell { background: var(--color-sand-50); }
+.fc .fc-col-header-cell-cushion { padding: 0.6rem 0; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; }
+.fc .fc-daygrid-day-number { padding: 0.45rem 0.6rem; font-size: 0.8rem; font-weight: 500; color: #475569; }
+.fc .fc-day-today .fc-daygrid-day-number {
+  background: var(--color-brand-600); color: #fff !important; border-radius: 999px;
+  min-width: 1.6rem; height: 1.6rem; display: grid; place-items: center; padding: 0; margin: 0.3rem;
+}
+.fc .fc-daygrid-day { cursor: pointer; transition: background-color 0.15s; }
+.fc .fc-daygrid-day-frame { min-height: 5.25rem; }
+.fc .fc-daygrid-day.wc-free:hover { background: #ecfdf3; }
+.fc .fc-daygrid-day.wc-free .fc-daygrid-day-number { color: #047857; }
+.fc .fc-daygrid-day.wc-past { background: var(--color-sand-50); cursor: default; }
+.fc .fc-daygrid-day.wc-past .fc-daygrid-day-number { color: #cbbfc5; }
+.fc .fc-event { border-radius: 0.45rem; padding: 2px 6px; font-weight: 600; font-size: 0.74rem; cursor: pointer; box-shadow: var(--shadow-xs); }
+.fc .fc-daygrid-event { margin: 1px 4px 0 !important; }
+.fc .fc-daygrid-more-link { font-size: 0.72rem; color: #64748b; padding-left: 6px; }
+.fc-theme-standard .fc-scrollgrid { border-radius: 0.9rem; overflow: hidden; }
+.fc .fc-list { border-radius: 0.9rem; overflow: hidden; }
+.fc .fc-list-day-cushion { background: var(--color-sand-50) !important; }
+.fc .fc-daygrid-day.wc-free { background: #f6fdf9; }
+.fc .fc-daygrid-day.wc-booked { background: #fff5f7; }
+.fc .fc-daygrid-day.wc-pending { background: #fffbeb; }
+.fc .fc-daygrid-day.wc-blocked {
+  background: repeating-linear-gradient(45deg, #fafafa 0 6px, #eef0f3 6px 9px);
+}
+.fc .fc-daygrid-day.fc-day-other { opacity: 0.5; }
